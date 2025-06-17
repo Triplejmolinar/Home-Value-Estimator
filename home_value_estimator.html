@@ -1,0 +1,129 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jesse Joe Molinar - Home Value Estimator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .cta-button { background-color: #1e40af; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; }
+        .cta-button:hover { background-color: #1e3a8a; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container bg-white p-6 rounded-lg shadow-lg">
+        <h1 class="text-3xl font-bold text-center mb-4">Jesse Joe Molinar's Home Value Estimator</h1>
+        <p class="text-center mb-6">Q'vo le, West Texas! Curious about your home’s market value? Enter a few details below for a quick estimate, then contact me for a free, personalized Comparative Market Analysis to get the most accurate value for your property!</p>
+        
+        <form id="homeValueForm" class="space-y-4">
+            <div>
+                <label for="address" class="block text-sm font-medium">Street Address</label>
+                <input type="text" id="address" class="w-full p-2 border rounded" placeholder="123 Main St, Odessa, TX" required>
+            </div>
+            <div>
+                <label for="sqft" class="block text-sm font-medium">Square Footage</label>
+                <input type="number" id="sqft" class="w-full p-2 border rounded" placeholder="e.g., 2000" required>
+            </div>
+            <div>
+                <label for="bedrooms" class="block text-sm font-medium">Number of Bedrooms</label>
+                <input type="number" id="bedrooms" class="w-full p-2 border rounded" placeholder="e.g., 3" required>
+            </div>
+            <div>
+                <label for="bathrooms" class="block text-sm font-medium">Number of Bathrooms</label>
+                <input type="number" id="bathrooms" class="w-full p-2 border rounded" placeholder="e.g., 2" required>
+            </div>
+            <div>
+                <label for="condition" class="block text-sm font-medium">Home Condition</label>
+                <select id="condition" class="w-full p-2 border rounded">
+                    <option value="1.1">Excellent (New/Updated)</option>
+                    <option value="1.0" selected>Good (Well-maintained)</option>
+                    <option value="0.9">Fair (Needs minor work)</option>
+                    <option value="0.8">Needs Significant Work</option>
+                </select>
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Get Your Estimate</button>
+        </form>
+        
+        <div id="result" class="mt-6 hidden">
+            <h2 class="text-xl font-semibold">Estimated Home Value</h2>
+            <p id="estimate" class="text-lg"></p>
+            <p class="mt-4">This is a starting point based on general West Texas market trends. For a precise valuation tailored to your home’s unique features, <a href="mailto:jessejoemolinar@example.com" class="text-blue-600 underline">contact Jesse Joe Molinar</a> for a free, no-obligation CMA. I’ll dive into local comps, market conditions, and your home’s specifics to get you the best price!</p>
+            <p class="mt-2">Call or text me at (123) 456-7890 or email <a href="mailto:jessejoemolinar@example.com" class="text-blue-600 underline">jessejoemolinar@example.com</a>.</p>
+            <a href="https://www.facebook.com/jessejoemolinarrealtor" class="cta-button mt-4 inline-block">Connect with Me on Facebook</a>
+        </div>
+        
+        <footer class="mt-8 text-center">
+            <p>Jesse Joe Molinar, Your West Texas Realtor | Serving Odessa & All of West Texas</p>
+            <p>God Bless & Let’s Get Your Home Sold!</p>
+        </footer>
+    </div>
+
+    <script>
+        // Sample market data for West Texas (adjust based on local research)
+        const AVG_PRICE_PER_SQFT = 150; // Average price per sqft in West Texas (example)
+        const BEDROOM_VALUE = 10000; // Additional value per bedroom
+        const BATHROOM_VALUE = 8000; // Additional value per bathroom
+
+        document.getElementById('homeValueForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form values
+            const sqft = parseInt(document.getElementById('sqft').value);
+            const bedrooms = parseInt(document.getElementById('bedrooms').value);
+            const bathrooms = parseInt(document.getElementById('bathrooms').value);
+            const condition = parseFloat(document.getElementById('condition').value);
+            
+            // Simple valuation algorithm
+            let baseValue = sqft * AVG_PRICE_PER_SQFT;
+            baseValue += bedrooms * BEDROOM_VALUE;
+            baseValue += bathrooms * BATHROOM_VALUE;
+            const estimatedValue = Math.round(baseValue * condition);
+            
+            // Display result
+            document.getElementById('estimate').textContent = `Your home’s estimated value is $${estimatedValue.toLocaleString()}.`;
+            document.getElementById('result').classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>
